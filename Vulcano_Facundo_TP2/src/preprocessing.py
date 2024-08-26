@@ -3,12 +3,12 @@ import pandas as pd
 df = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\raw\\toyota_dev.csv')
 
 def one_hot_encoder(df, feature):
-    pass
+    one_hot = pd.get_dummies(df[feature])
+    return one_hot
     
-
-def normalize():
-    pass
-
+def normalize(df, feature, rango):
+    min_max_scaler = rango[0] + ((df[feature] - df[feature].min()) / (df[feature].max() - df[feature].min())) * (rango[1] - rango[0])
+    return min_max_scaler
 
 def handle_missing_values(df, feature):
     cars_without_feature = df[df[feature].isna()]
@@ -48,8 +48,6 @@ def handle_missing_values(df, feature):
         if RAV4_diff < RAV4_smallest:
             RAV4_smallest = RAV4_diff
 
-
-
     df.loc[(df['Tipo'] == 'Hilux SW4') & (df['Color'].isna()), 'Color'] = hillux_dict[hillux_smallest]
     df.loc[(df['Tipo'] == 'Corolla Cross') & (df['Color'].isna()), 'Color'] = corolla_dict[corolla_smallest]
     df.loc[(df['Tipo'] == 'RAV4') & (df['Color'].isna()), 'Color'] = RAV4_dict[RAV4_smallest]
@@ -75,12 +73,25 @@ def group_by_engine(motor_df):
                 return grupo
     return 'otros'
 
+def processing(df):
+    df['Precio'] = df['Precio'].astype(int)
+    df['Año'] = df['Año'].astype(int)
+    df['Kilómetros'] = df['Kilómetros'].str.replace(' km', '').str.replace('.', '').astype(int)
+    df['Motor'] = df['Motor'].apply(group_by_engine)
+    handle_missing_values(df, 'Color')
+
+    features_to_normalize = ['Kilómetros', 'Año']
+    for feature in features_to_normalize:
+        df[features_to_normalize] = normalize(df, features_to_normalize, [0, 1])
+
+    df = df.drop(columns=['id'])
+    features_to_encode = ['Tipo', 'Color', 'Tipo de combustible', 'Transmisión', 'Tipo de vendedor', 'Motor']
+    for feature in features_to_encode:
+        feature_one_hot_encoded = one_hot_encoder(df, feature).astype(int)
+        df = pd.concat([df, feature_one_hot_encoded], axis=1)
+        df = df.drop(columns=[feature])
 
 
-#Procesamiento de los datos
+    return df.to_csv('dataset_procesado.csv', index=False)
 
-# df['Precio'] = df['Precio'].astype(int)
-# df['Año'] = df['Año'].astype(int)
-# df['Kilómetros'] = df['Kilómetros'].str.replace(' km', '').str.replace('.', '').astype(int)
-# df['Motor'] = df['Motor'].apply(group_by_engine)
-# handle_missing_values(df, 'Color')
+

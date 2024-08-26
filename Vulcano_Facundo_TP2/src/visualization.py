@@ -76,8 +76,23 @@ def histograms_with_price(df, feature1, feature2):
     plt.tight_layout()
     plt.show()
 
+
+
 df = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\raw\\toyota_dev.csv')
+df_procesado = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\processed\\dataset_procesado.csv')
+
+print(df_procesado.head())
+
+correlation_anio_precio = df_procesado['Año'].corr(df_procesado['Precio'])
 
 
+#print(correlation_anio_precio)
 
+
+features = df_procesado.columns.tolist()
+correlations = []
+for feature in features:
+    correlation_feature_price = df_procesado[feature].corr(df_procesado['Precio'])
+    correlations.append(feature)
+    print(f'Correlacion entre {feature} y price = {correlation_feature_price}')
 
