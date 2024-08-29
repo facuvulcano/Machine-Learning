@@ -1,7 +1,5 @@
 import pandas as pd
 
-df = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\raw\\toyota_dev.csv')
-
 def one_hot_encoder(df, feature):
     one_hot = pd.get_dummies(df[feature])
     return one_hot
@@ -74,7 +72,7 @@ def group_by_engine(motor_df):
     return 'otros'
 
 def processing(df):
-    df['Precio'] = df['Precio'].astype(int)
+    #df['Precio'] = df['Precio'].astype(int)
     df['Año'] = df['Año'].astype(int)
     df['Kilómetros'] = df['Kilómetros'].str.replace(' km', '').str.replace('.', '').astype(int)
     df['Motor'] = df['Motor'].apply(group_by_engine)
