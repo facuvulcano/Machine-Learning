@@ -1,26 +1,27 @@
 import numpy as np
 
-def rmse(N, targets, target_prediction):
-    sum = 0
-    for i in range(N):
+def rmse(targets, target_prediction):
+    sum_error = 0
+    for i in range(len(targets)):
         real_y = targets[i]
         predicted_y = target_prediction[i]
-        sum += (real_y - predicted_y)**2
-    return np.sqrt((1/N) * sum)
+        sum_error += (real_y - predicted_y)**2
+    return np.sqrt(sum_error/len(targets))
 
-def mae(N, targets, target_prediction):
-    sum = 0
-    for i in range(N):
+
+def mae(targets, target_prediction):
+    sum_error = 0
+    for i in range(len(targets)):
         real_y = targets[i]
         predicted_y = target_prediction[i]
-        sum += abs(real_y - predicted_y)
-    return (1/N) * sum   
+        sum_error += abs(real_y - predicted_y)
+    return sum_error / len(targets)
 
-def r2(N, targets, target_prediction):
+def r2(targets, target_prediction):
     residual_sum_of_squares = 0
     total_sum_of_squares = 0
-    y_mean = sum(targets) / N
-    for i in range(N):
+    y_mean = sum(targets) / len(targets)
+    for i in range(len(targets)):
         real_y = targets[i]
         predicted_y = target_prediction[i]
         residual_sum_of_squares += (real_y - predicted_y)**2

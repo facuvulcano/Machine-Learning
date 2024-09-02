@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.optimize import minimize
 
+# def callback(params):
+#     print(f"Current params: {params[:5]}")
+
 class RidgeRegression():
     """
     Ridge Regression model for lineal regression with L2 regularizations.
@@ -8,7 +11,7 @@ class RidgeRegression():
     Ridge regression adresses multicollinearity by imposing a penalty on the size of coefficients.
     It minimizes the residual sum of squares plus a regularization term that penalizes large weights.
     """
-    def __init__(self, lambda_penalty):
+    def __init__(self, lambda_penalty, degree):
         """
         Initialize the RidgeRegression model.
 
@@ -17,65 +20,113 @@ class RidgeRegression():
         lambda_penalty : float
             Regularization strength. Must be a positive float. Larger values specify stronger regularization.
         """
+        # Store the regularization parameter as an instance variable
         self.lambda_penalty = lambda_penalty
+        self.degree = degree
+        self.weights = None
 
-    def fit(self, X, y):
+    def _add_polynomial_features(self, X):
         """
-        Fit the Ridge Regression model to the training data.
+        Generate polynomial features up to the specified degree.
 
         Parameters:
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            Training data where n_samples is the number of samples and n_features is the number of features.
-        y: array-like, shape (n_samples,)
-            Target values.
+        -----------
+        X : array-like, shape (n_samples, n_features)
+            Input data where n_samples is the number of samples and n_features is the number of features.
         
         Returns:
         --------
+        X_poly : array-like, sahpe (n_samples, n_poly_features)
+            The input data transformed to include polynomial features up to the specified degree.
+        """
+        X_poly = X.copy()
+        n_samples, n_features = X.shape
+
+        #Adding polynomial features up to the specified degree
+        for d in range(2, self.degree + 1):
+            for i in range(n_features):
+                X_poly = np.c_[X_poly, X[:, i] ** d]
+        
+        #Adding interaction terms (cross-features)
+        for i in range(n_features):
+            for j in range(i + 1, n_features):
+                X_poly = np.c_[X_poly, X[:, i] * X[:, j]]
+        
+        return X_poly
+
+    def fit(self, X, y):
+        """
+        Fit the model using the chosen mode.
+
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples, n_features)
+            Training data where n_samples is the number of samples and n_features is the number of features.
+
+        y : array-like, shape (n_samples,)
+            Target values.
+        
+        Returns:
+        -------
         self : object
             Returns an instance of self.
         
         Notes:
         ------
-        This method calculates the weights (coefficients) of the linear model using the closed-form solution
-        for Ridge Regression:
-        
-            weights = (X^T * X + lambda * I)^(-1) * X^T * y
-        
-        where lambda is the regularization parameter and I is the identity matriz with the first element set to zero
-        to exclude the bias term from the regularization.
+        Depending on the mode:
+        - 'features': Fits a Ridge Regression model with polynomial features.
+        - 'parameters': Uses optimization to fit a custom nonlinear model.
         """
-        X_with_intercept = np.c_[np.ones((X.shape[0], 1)), X]
-        self.X_intercept = X_with_intercept
+
+        #Selects only numeric columns
+        num_features = X.iloc[:, :2].to_numpy()
+        #np.set_printoptions(threshold=np.inf)
+        #print("Caractertistiicas originales: \n", num_features[:10])
+        #Keep the binary features
+        bin_features = X.iloc[:, 2:].to_numpy()
+        #Generate polynomial features only for numerical ones
+        num_features_poly = self._add_polynomial_features(num_features)
+        #np.set_printoptions(threshold=np.inf)
+        #print("Caracteristicas polinomicas generadas: \n", num_features_poly[:10])
+        #Combine polinomic features with binary features
+        X_poly = np.hstack((num_features_poly, bin_features))
+        X_with_intercept = np.c_[np.ones((X_poly.shape[0], 1)), X_poly]
         dimension = X_with_intercept.shape[1]
         A = np.identity(dimension)
-        A[0,0] = 0
+        A[0, 0] = 0
         A_biased = self.lambda_penalty * A
         self.weights = np.linalg.inv(X_with_intercept.T.dot(X_with_intercept) + A_biased).dot(X_with_intercept.T).dot(y)
+        
         return self
 
     def predict(self, X):
         """
-        Predict target values using the fitted Ridge Regression model.
+        Predict ussing the fitted model.
 
-        Paramaters:
+        Parameters:
         -----------
         X : array-like, shape (n_samples, n_features)
-            Input data where n_samples is the number of samples and n_features is the number of features
+            Input data where n_samples is the number of samples and n_featues is the number of features.
         
         Returns:
         --------
-        Predictions : array, shape (n_samples,)
-            Predicted target values
+        Predicitons : array, shape (n_samples,)
+            Predicted target values.
         
         Notes:
         ------
-        This method applies the learned weights to the input data to generate predictions. It adds an intercept
-        term to the input data and computes the dot product with the weight vector.
+        Depending on the mode:
+        - 'features': Uses the polynomial features and the fitted weights to predict.
+        - 'parametes': Uses the fitted custom nonlinear model to predict.
         """
         if self.weights is None:
             raise ValueError("Model is not fitted yet. Call 'fit' with appropiate arguments before using this method.")
-        X_predictor = np.c_[np.ones((X.shape[0], 1)), X]
+        
+        num_features = X.iloc[:, :2].to_numpy()
+        bin_features = X.iloc[:, 2:].to_numpy()
+        num_features_poly = self._add_polynomial_features(num_features)
+        X_poly = np.hstack((num_features_poly, bin_features))
+        X_predictor = np.c_[np.ones((X_poly.shape[0], 1)), X_poly]
         predictions = X_predictor.dot(self.weights)
         return predictions
 
@@ -86,7 +137,7 @@ class NonLinearRegression():
     This class allows fitting regression models with either polynomial feature expansion (nonlinear features)
     or using a custom nonlinear model where the parameters are nonlinear (nonlinear parameters).
     """
-    def __init__(self, model_func=None, initial_params=None, degree=None, lambda_penalty=0.0, mode='features'):
+    def __init__(self, model_func, initial_params, lambda_penalty):
         """
         Initialize the flexible nonlinear regression model.
 
@@ -111,31 +162,9 @@ class NonLinearRegression():
         """
         self.model_func = model_func
         self.initial_params = np.array(initial_params) if initial_params is not None else None
-        self.degree = degree
         self.lambda_penalty = lambda_penalty
-        self.mode = mode
-        self.params_ = None
-        self.weights_ = None
-    
-    def _add_polynomial_features(self, X):
-        """
-        Generate polynomial features up to the specified degree.
+        self.params = None
 
-        Parameters:
-        -----------
-        X : array-like, shape (n_samples, n_features)
-            Input data where n_samples is the number of samples and n_features is the number of features.
-        
-        Returns:
-        --------
-        X_poly : array-like, sahpe (n_samples, n_poly_features)
-            The input data transformed to include polynomial features up to the specified degree.
-        """
-        X_poly = X.copy()
-        for d in range(2, self.degree + 1):
-            X_poly = np.c_[X_poly, X**d]
-        return X_poly
-    
     def _loss_function(self, params, X, y):
         """
         Compute the loss function (mean squared error) for nonlinear parameters.
@@ -164,6 +193,7 @@ class NonLinearRegression():
         loss = np.mean((y - predictions) ** 2)
         return loss
     
+        
     def fit(self, X, y):
         """
         Fit the model using the chosen mode.
@@ -187,25 +217,10 @@ class NonLinearRegression():
         - 'features': Fits a Ridge Regression model with polynomial features.
         - 'parameters': Uses optimization to fit a custom nonlinear model.
         """
-        if self.mode == 'features':
-            X_poly = self._add_polynomial_features(X)
-            X_with_intercept = np.c_[np.ones((X_poly.shape[0], 1)), X_poly]
-            dimension = X_with_intercept.shape[1]
-            A = np.identity(dimension)
-            A[0, 0] = 0
-            A_biased = self.lambda_penalty * A
-            self.weights = np.linalg.inv(X_with_intercept.T.dot(X_with_intercept) + A_biased).dot(X_with_intercept.T).dot(y)
         
-        elif self.mode == 'parameters':
-            if self.model_func is None or self.initial_params is None:
-                raise ValueError("model_func and initial_params must be provided for 'parameters' mode.")
-            
-            result = minimize(self._loss_function, self.initial_params, args=(X, y), method='L-BFGS-B')
-            self.params_ = result.x
-        
-        else:
-            raise ValueError("Invalid mode. Choose 'features' or 'parameters'.")
-        
+        result = minimize(self._loss_function, self.initial_params, args=(X, y), method='L-BFGS-B', options={'disp':True})
+        self.params = result.x
+    
         return self
 
     def predict(self, X):
@@ -228,74 +243,52 @@ class NonLinearRegression():
         - 'features': Uses the polynomial features and the fitted weights to predict.
         - 'parametes': Uses the fitted custom nonlinear model to predict.
         """
-        if self.mode == 'features':
-            if self.weights_ is None:
-                raise ValueError("Model is not fitted yet. Call 'fit' with appropiate arguments before using this method.")
-            
-            X_poly = self._add_polynomial_features(X)
-            X_predictor = np.c_[np.ones((X_poly.shape[0], 1)), X_poly]
-            predictions = X_predictor.dot(self.weights_)
-        
-        elif self.mode == 'parameters':
-            if self.params_ is None:
-                raise ValueError("Model is not fitted yet. Call 'fit' with appropiate arguments before using this method.")
-            
-            predictions = self.model_func(X, *self.params_)
-        
-        else:
-            raise ValueError("Invalid mode. Choose 'features' or 'parameters'.")
-        
+
+    
+
+        if self.params is None:
+            raise ValueError("Model is not fitted yet. Call 'fit' with appropiate arguments before using this method.")      
+        predictions = self.model_func(X, *self.params)
         return predictions
     
 
 class LocallyWeightedRegression():
-    def __init__(self, features, targets, tau=1.0):
+    def __init__(self, tau):
         """
         Initialize the locally weighted regression model with features, targets, and bandwith.
         :param features: list or np.array, independent variables (should include a constant term for intercept if needed)
         :param targets: list or np.array, dependent variable
         :param tau: float, bendwith parameter determiningthe weighting shceme, lower values gives more weight to points near the target point.
         """
-        self.features = np.array(features)
-        self.targets = np.array(targets)
         self.tau = tau
+        self.X_train = None
+        self.y_train = None
 
-    def precit(self, query_points):
+    def _compute_weights(self, x_query):
+        
+        distances = np.linalg.norm(x_query - self.X_train, axis=1)
+        weights = np.exp(-distances ** 2 / (2 * self.tau ** 2))
+        W = np.diag(weights)
+        return W
+
+    def fit(self, X, y):
+        self.X_train = np.array(X)
+        self.y_train = np.array(y)
+
+    def predict(self, X_query):
         """
         Predict the target value for a given query point using locally weighted regreassion.
         :param query_point: np.array, the input features at which the prediction is to be made
         :return: float, predicted value
         """
 
-        weights = np.exp(-np.sum((self.features - query_points)**2, axis=1) / (2 * self.tau**2))
-        W = np.diag(weights)
-        X_transpose_W = self.features.T.dot(W)
-        X_transpose_W_X = X_transpose_W.dot(self.features)
+        y_pred = []
+        for x_query in X_query:
+            W = self._compute_weights(x_query)
+            XTWX = self.X_train.T.dot(W).dot(self.X_train)
+            XTWy = self.X_train.T.dot(W).dot(self.y_train)
+            theta = np.linalg.pinv(XTWX).dot(XTWy)
+            y_pred.append(x_query.dot(theta))
 
-        if np.linalg.det(X_transpose_W_X) == 0:
-            beta = np.linalg.pinv(X_transpose_W_X).dot(X_transpose_W).dot(self.targets)
-        else:
-            beta = np.linalg.inv(X_transpose_W_X).dot(X_transpose_W).dot(self.targets)
-
-        return query_points.dot(beta)
+        return np.array(y_pred)
         
-
-
-# df_procesado = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\processed\\dataset_procesado.csv')
-
-# targets = df_procesado['Precio'].to_numpy()
-
-# df_procesado = df_procesado.drop(columns=['Precio'])
-# features = df_procesado.to_numpy()
-
-
-
-# regresion = RidgeRegression(features, targets)
-# weights = regresion.optimal_weights()
-# target_prediction = regresion.target_prediciton(weights)
-# print(target_prediction)
-# print(targets)
-
-
-#modelo lineal en los parametros busco el w* con la formula
-#modelo lineal en los features busco el w* con algun metodo de optimizacion

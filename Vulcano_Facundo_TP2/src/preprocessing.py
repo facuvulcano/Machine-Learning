@@ -83,13 +83,21 @@ def processing(df):
         df[features_to_normalize] = normalize(df, features_to_normalize, [0, 1])
 
     df = df.drop(columns=['id'])
-    features_to_encode = ['Tipo', 'Color', 'Tipo de combustible', 'Transmisión', 'Tipo de vendedor', 'Motor']
+    df = df.drop(columns=['Color'])
+    df = df.drop(columns=['Tipo de vendedor'])
+
+    features_to_encode = ['Tipo', 'Tipo de combustible', 'Transmisión', 'Motor']
     for feature in features_to_encode:
         feature_one_hot_encoded = one_hot_encoder(df, feature).astype(int)
         df = pd.concat([df, feature_one_hot_encoded], axis=1)
         df = df.drop(columns=[feature])
 
+    df = df.drop(columns=['Híbrido/Nafta'])    
+    df = df.drop(columns=['Nafta/GNC'])
+    df = df.drop(columns=['otros'])
 
     return df.to_csv('dataset_procesado.csv', index=False)
 
 
+df = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\raw\\toyota_dev.csv')
+processing(df)
