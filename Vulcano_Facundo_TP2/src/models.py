@@ -218,7 +218,7 @@ class NonLinearRegression():
         - 'parameters': Uses optimization to fit a custom nonlinear model.
         """
         
-        result = minimize(self._loss_function, self.initial_params, args=(X, y), method='L-BFGS-B', options={'disp':True})
+        result = minimize(self._loss_function, self.initial_params, args=(X, y), method='L-BFGS-B') #options={'disp':True}
         self.params = result.x
     
         return self
