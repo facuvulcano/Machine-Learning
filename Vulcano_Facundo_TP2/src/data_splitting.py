@@ -94,23 +94,28 @@ def cross_val(df: pd.DataFrame, target, folds):
     np.random.shuffle(indices)
     fold_size = len(df) // folds
     training = []
-    testing = []
+    validation = []
     for fold in range(folds):
         start, stop = fold * fold_size, (fold + 1) * fold_size
-        test_idx = indices[start:stop]
+        val_idx = indices[start:stop]
 
         train_idx = np.concatenate([indices[:start], indices[stop:]])
         df_train = df.iloc[train_idx]
-        df_test = df.iloc[test_idx]
+        df_test = df.iloc[val_idx]
 
         X_train, y_train = df_train.drop(columns=[target]), df_train[target]
         X_test, y_test = df_test.drop(columns=[target]), df_test[target]
 
         training.append((X_train, y_train))
-        testing.append((X_test, y_test))
+        validation.append((X_test, y_test))
 
-    return training, testing
+    return training, validation
 
 
 
     
+# proccesed_df = pd.read_csv('/home/facuvulcano/Machine-Learning/Vulcano_Facundo_TP2/data/processed/dataset_procesado.csv')
+
+# training, validation = cross_val(proccesed_df, 'Precio', 5)
+
+# print(training[0][0])

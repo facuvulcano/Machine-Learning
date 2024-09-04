@@ -1,11 +1,14 @@
 import pandas as pd
+import os
+from datetime import datetime
 
 def one_hot_encoder(df, feature):
     one_hot = pd.get_dummies(df[feature])
     return one_hot
     
-def normalize(df, feature, rango):
-    min_max_scaler = rango[0] + ((df[feature] - df[feature].min()) / (df[feature].max() - df[feature].min())) * (rango[1] - rango[0])
+def normalize(X, feature, min_val, max_val, rango):
+
+    min_max_scaler = rango[0] + ((X[feature] - min_val) / (max_val - min_val)) * (rango[1] - rango[0])
     return min_max_scaler
 
 def handle_missing_values(df, feature):
@@ -78,26 +81,28 @@ def processing(df):
     df['Motor'] = df['Motor'].apply(group_by_engine)
     handle_missing_values(df, 'Color')
 
-    features_to_normalize = ['Kilómetros', 'Año']
-    for feature in features_to_normalize:
-        df[features_to_normalize] = normalize(df, features_to_normalize, [0, 1])
+    # features_to_normalize = ['Kilómetros', 'Año']
+    # for feature in features_to_normalize:
+    #     df[features_to_normalize] = normalize(df, features_to_normalize, [0, 1])
 
     df = df.drop(columns=['id'])
-    df = df.drop(columns=['Color'])
     df = df.drop(columns=['Tipo de vendedor'])
 
-    features_to_encode = ['Tipo', 'Tipo de combustible', 'Transmisión', 'Motor']
+    features_to_encode = ['Tipo', 'Tipo de combustible', 'Transmisión', 'Motor', 'Color']
     for feature in features_to_encode:
         feature_one_hot_encoded = one_hot_encoder(df, feature).astype(int)
         df = pd.concat([df, feature_one_hot_encoded], axis=1)
         df = df.drop(columns=[feature])
 
     df = df.drop(columns=['Híbrido/Nafta'])    
-    df = df.drop(columns=['Nafta/GNC'])
+    #df = df.drop(columns=['Nafta/GNC'])
     df = df.drop(columns=['otros'])
 
-    return df.to_csv('dataset_procesado.csv', index=False)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    file_name = f"dataset_procesado_{timestamp}.csv"
+    output_path = os.path.join('/home/facuvulcano/Machine-Learning/Vulcano_Facundo_TP2/data/processed', file_name)
 
+    df.to_csv(output_path, index=False)
+    print(f"Archivo guardado como: {output_path}")
 
-df = pd.read_csv('C:\\Users\\facuv\\Machine-Learning\\Vulcano_Facundo_TP2\\data\\raw\\toyota_dev.csv')
-processing(df)
+    return output_path

@@ -291,4 +291,14 @@ class LocallyWeightedRegression():
             y_pred.append(x_query.dot(theta))
 
         return np.array(y_pred)
-        
+
+def non_lineal_model_on_params(X_train, *params):
+
+    w1, w2 = params[:2]
+    eq = w1 * np.exp(-w2 * X_train['Kilómetros'])   
+    linear_weights = params[2:]
+    features = X_train.drop(columns=['Kilómetros']).columns.to_numpy()
+
+    for feature, weight in zip(features, linear_weights):
+        eq += X_train[feature] * weight
+    return eq
