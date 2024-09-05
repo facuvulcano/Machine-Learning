@@ -110,12 +110,3 @@ def cross_val(df: pd.DataFrame, target, folds):
         validation.append((X_test, y_test))
 
     return training, validation
-
-
-
-    
-# proccesed_df = pd.read_csv('/home/facuvulcano/Machine-Learning/Vulcano_Facundo_TP2/data/processed/dataset_procesado.csv')
-
-# training, validation = cross_val(proccesed_df, 'Precio', 5)
-
-# print(training[0][0])

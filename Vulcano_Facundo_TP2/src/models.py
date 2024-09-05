@@ -1,15 +1,14 @@
 import numpy as np
 from scipy.optimize import minimize
 
-# def callback(params):
-#     print(f"Current params: {params[:5]}")
 
 class RidgeRegression():
     """
-    Ridge Regression model for lineal regression with L2 regularizations.
+    Ridge Regression model for non lineal regression with L2 regularizations.
 
     Ridge regression adresses multicollinearity by imposing a penalty on the size of coefficients.
     It minimizes the residual sum of squares plus a regularization term that penalizes large weights.
+    This is a non linear regression on the features because of the add_polynomia_features function
     """
     def __init__(self, lambda_penalty, degree):
         """
@@ -20,7 +19,6 @@ class RidgeRegression():
         lambda_penalty : float
             Regularization strength. Must be a positive float. Larger values specify stronger regularization.
         """
-        # Store the regularization parameter as an instance variable
         self.lambda_penalty = lambda_penalty
         self.degree = degree
         self.weights = None
@@ -41,13 +39,10 @@ class RidgeRegression():
         """
         X_poly = X.copy()
         n_samples, n_features = X.shape
-
-        #Adding polynomial features up to the specified degree
         for d in range(2, self.degree + 1):
             for i in range(n_features):
                 X_poly = np.c_[X_poly, X[:, i] ** d]
-        
-        #Adding interaction terms (cross-features)
+
         for i in range(n_features):
             for j in range(i + 1, n_features):
                 X_poly = np.c_[X_poly, X[:, i] * X[:, j]]
@@ -56,7 +51,7 @@ class RidgeRegression():
 
     def fit(self, X, y):
         """
-        Fit the model using the chosen mode.
+        Fit the model
 
         Parameters:
         -----------
@@ -70,25 +65,11 @@ class RidgeRegression():
         -------
         self : object
             Returns an instance of self.
-        
-        Notes:
-        ------
-        Depending on the mode:
-        - 'features': Fits a Ridge Regression model with polynomial features.
-        - 'parameters': Uses optimization to fit a custom nonlinear model.
         """
 
-        #Selects only numeric columns
         num_features = X.iloc[:, :2].to_numpy()
-        #np.set_printoptions(threshold=np.inf)
-        #print("Caractertistiicas originales: \n", num_features[:10])
-        #Keep the binary features
         bin_features = X.iloc[:, 2:].to_numpy()
-        #Generate polynomial features only for numerical ones
         num_features_poly = self._add_polynomial_features(num_features)
-        #np.set_printoptions(threshold=np.inf)
-        #print("Caracteristicas polinomicas generadas: \n", num_features_poly[:10])
-        #Combine polinomic features with binary features
         X_poly = np.hstack((num_features_poly, bin_features))
         X_with_intercept = np.c_[np.ones((X_poly.shape[0], 1)), X_poly]
         dimension = X_with_intercept.shape[1]
@@ -96,7 +77,6 @@ class RidgeRegression():
         A[0, 0] = 0
         A_biased = self.lambda_penalty * A
         self.weights = np.linalg.inv(X_with_intercept.T.dot(X_with_intercept) + A_biased).dot(X_with_intercept.T).dot(y)
-        
         return self
 
     def predict(self, X):
@@ -113,11 +93,6 @@ class RidgeRegression():
         Predicitons : array, shape (n_samples,)
             Predicted target values.
         
-        Notes:
-        ------
-        Depending on the mode:
-        - 'features': Uses the polynomial features and the fitted weights to predict.
-        - 'parametes': Uses the fitted custom nonlinear model to predict.
         """
         if self.weights is None:
             raise ValueError("Model is not fitted yet. Call 'fit' with appropiate arguments before using this method.")
@@ -132,33 +107,25 @@ class RidgeRegression():
 
 class NonLinearRegression():
     """
-    Flexible nonlinear regression model supporting both nonlinear features and nonlinear parameters.
+    Nonlinear regression model on the parameters.
 
-    This class allows fitting regression models with either polynomial feature expansion (nonlinear features)
-    or using a custom nonlinear model where the parameters are nonlinear (nonlinear parameters).
+    This class allows fitting regression models with a custom nonlinear model where the parameters are nonlinear (nonlinear parameters).
     """
     def __init__(self, model_func, initial_params, lambda_penalty):
         """
-        Initialize the flexible nonlinear regression model.
+        Initialize the nonlinear regression model.
 
         Parameters:
         -----------
-        model_func : callable, optional
-            A function representing the nonlinear model, used only in 'parameters' mode.
+        model_func : callable
+            A function representing the nonlinear model
 
         initial_params : array-like, optional
-            Initial guess for the parameters, used only in 'parameters' mode.
-        
-        degree : int, optional
-            Degree of polynomical features, used only in 'features' mode.
+            Initial guess for the parameters
         
         lambda_penalty : float, optional, default=0.0
             Regularization strength. Must be a non-negative float. Larger values specify stronger regularization.
         
-        mode : str, optional, default='features'
-            Specifies the type of nonlinearity. Optons are:
-            - 'features': Applies polynomial feature expansion (nonlinear features).
-            - 'parameters': Fits a custom nonlinear model where the parameters are nonlinear.
         """
         self.model_func = model_func
         self.initial_params = np.array(initial_params) if initial_params is not None else None
@@ -185,9 +152,6 @@ class NonLinearRegression():
         Loss : float
             The mean squared error between the predicted values and the target values.
         
-        Notes:
-        ------
-        This function is used in 'parameters' mode to evaluate the performance of the current set of parameters.
         """
         predictions = self.model_func(X, *params)
         loss = np.mean((y - predictions) ** 2)
@@ -196,7 +160,7 @@ class NonLinearRegression():
         
     def fit(self, X, y):
         """
-        Fit the model using the chosen mode.
+        Fit the model
 
         Parameters:
         -----------
@@ -211,11 +175,6 @@ class NonLinearRegression():
         self : object
             Returns an instance of self.
         
-        Notes:
-        ------
-        Depending on the mode:
-        - 'features': Fits a Ridge Regression model with polynomial features.
-        - 'parameters': Uses optimization to fit a custom nonlinear model.
         """
         
         result = minimize(self._loss_function, self.initial_params, args=(X, y), method='L-BFGS-B') #options={'disp':True}
@@ -237,11 +196,6 @@ class NonLinearRegression():
         Predicitons : array, shape (n_samples,)
             Predicted target values.
         
-        Notes:
-        ------
-        Depending on the mode:
-        - 'features': Uses the polynomial features and the fitted weights to predict.
-        - 'parametes': Uses the fitted custom nonlinear model to predict.
         """
 
     
@@ -291,14 +245,3 @@ class LocallyWeightedRegression():
             y_pred.append(x_query.dot(theta))
 
         return np.array(y_pred)
-
-def non_lineal_model_on_params(X_train, *params):
-
-    w1, w2 = params[:2]
-    eq = w1 * np.exp(-w2 * X_train['Kilómetros'])   
-    linear_weights = params[2:]
-    features = X_train.drop(columns=['Kilómetros']).columns.to_numpy()
-
-    for feature, weight in zip(features, linear_weights):
-        eq += X_train[feature] * weight
-    return eq

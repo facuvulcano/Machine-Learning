@@ -75,27 +75,23 @@ def group_by_engine(motor_df):
     return 'otros'
 
 def processing(df):
-    #df['Precio'] = df['Precio'].astype(int)
     df['Año'] = df['Año'].astype(int)
     df['Kilómetros'] = df['Kilómetros'].str.replace(' km', '').str.replace('.', '').astype(int)
     df['Motor'] = df['Motor'].apply(group_by_engine)
     handle_missing_values(df, 'Color')
 
-    # features_to_normalize = ['Kilómetros', 'Año']
-    # for feature in features_to_normalize:
-    #     df[features_to_normalize] = normalize(df, features_to_normalize, [0, 1])
-
     df = df.drop(columns=['id'])
     df = df.drop(columns=['Tipo de vendedor'])
+    df = df.drop(columns=['Color'])
 
-    features_to_encode = ['Tipo', 'Tipo de combustible', 'Transmisión', 'Motor', 'Color']
+    features_to_encode = ['Tipo', 'Tipo de combustible', 'Transmisión', 'Motor']
     for feature in features_to_encode:
         feature_one_hot_encoded = one_hot_encoder(df, feature).astype(int)
         df = pd.concat([df, feature_one_hot_encoded], axis=1)
         df = df.drop(columns=[feature])
 
-    df = df.drop(columns=['Híbrido/Nafta'])    
-    #df = df.drop(columns=['Nafta/GNC'])
+    df = df.drop(columns=['Híbrido/Nafta'])
+    df = df.drop(columns=['Automática secuencial'])    
     df = df.drop(columns=['otros'])
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
