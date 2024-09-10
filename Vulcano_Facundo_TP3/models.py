@@ -18,7 +18,10 @@ class DecisionTree():
                  max_depth,
                  min_samples_leaf,
                  min_information_gain):
-        pass
+        self.max_depth  = max_depth
+        self.min_samples_leaf = min_samples_leaf
+        self.min_information_gain = self.min_information_gain
+        
 
     def entropy(self, class_probabilties: list) -> list:
         pass
@@ -47,5 +50,14 @@ class DecisionTree():
     def predict_one_sample(self, X: np.array) -> np.array:
         pass
 
+    def train(self, X_train: np.array, Y_train: np,array) -> None:
+        pass
 
+    def predict_probs(self, X_set: np.array) -> np.array:
+        pass
 
+    def predict(self, X_set: np.array) -> np.array:
+        pass
+
+    def plot_decision_tree(self):
+        pass
