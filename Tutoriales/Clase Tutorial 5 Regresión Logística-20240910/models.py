@@ -1,81 +1,72 @@
 import numpy as np
 
+class LinearRegression:
+    def __init__(self, degree=1, basis_fn=None):
+        self.degree = degree
+        # Default to polynomial basis if none provided
+        if basis_fn is None:
+            self.basis_fn = lambda x, d: np.power(x, d).flatten()  # Ensure it returns a 1D array
+        else:
+            self.basis_fn = basis_fn
+        self.coef_ = None
+        self.intercept_ = None
 
-class Node():
-    def __init__(self, data, feature_idx, feature_val, prediction_probs, information_gain) -> None:
-        self.data = data
-        self.feature_idx = feature_idx
-        self.feature_val = feature_val
-        self.prediction_probs = prediction_probs
-        self.information_gain = information_gain
-        self.left = None
-        self.right = None
+    def _design_matrix(self, X):
+        """
+        Constructs the design matrix PHI using the basis function.
+        X: input feature vector (1D or 2D)
+        """
+        X = X.flatten()  # Ensure X is a 1D array
+        PHI = np.zeros((len(X), self.degree + 1))
+        for i in range(self.degree + 1):
+            PHI[:, i] = self.basis_fn(X, i)  # Basis function applied on 1D array
+        return PHI
 
-
-class DecisionTree():
-
-    def __init__(self,
-                 max_depth,
-                 min_samples_leaf,
-                 min_information_gain):
-        self.max_depth  = max_depth
-        self.min_samples_leaf = min_samples_leaf
-        self.min_information_gain = self.min_information_gain
+    def fit(self, X, Y):
+        """
+        Fits the model to the data using the normal equation.
+        X: input feature vector (1D)
+        Y: target vector
+        """
+        PHI = self._design_matrix(X)
         
-
-    def entropy(self, class_probabilties: list) -> list:
-        pass
-
-    def class_probabilites(self, labels: list) -> list:
-        pass
-
-    def datta_entropy(self, labels: list) -> float:
-        pass
-
-    def partition_entropy(self, suvsets:list) ->  float:
-        pass
-
-    def split(self, data: np.array, feature_idx: int, feature_val: float) -> tuple:
-        pass
-
-    def find_best_split(self, data: np.array) -> tuple:
-        pass
-
-    def find_label_probs(self, data: np.array) -> np.array:
-        pass
+        # Normal equation: w = (PHI^T * PHI)^-1 * PHI^T * Y
+        PHI_T_PHI = np.dot(PHI.T, PHI)
+        PHI_T_Y = np.dot(PHI.T, Y)
+        PHI_T_PHI_inv = np.linalg.inv(PHI_T_PHI)
+        
+        # Get coefficients
+        w = np.dot(PHI_T_PHI_inv, PHI_T_Y)
+        
+        self.coef_ = w[1:]  # Coefficients for X terms
+        self.intercept_ = w[0]  # Intercept term
     
-    def create_tree(self, data: np.array, current_depth: int) -> Node:
-        pass
+    def predict(self, X):
+        """
+        Predicts the target values for input X using the fitted model.
+        X: input feature vector (1D)
+        """
+        PHI = self._design_matrix(X)
+        return np.dot(PHI, np.concatenate(([self.intercept_], self.coef_)))
 
-    def predict_one_sample(self, X: np.array) -> np.array:
-        pass
-
-    def train(self, X_train: np.array, Y_train: np,array) -> None:
-        pass
-
-    def predict_probs(self, X_set: np.array) -> np.array:
-        pass
-
-    def predict(self, X_set: np.array) -> np.array:
-        pass
-
-    def plot_decision_tree(self):
-        pass
-
+    def __str__(self):
+        """
+        Return a string representation showing the intercept and coefficients.
+        """
+        coef_str = ' + '.join([f'{round(c,3)} * x^{i+1}' for i, c in enumerate(self.coef_)])
+        return f"ŷ(x) = {round(self.intercept_,3)} + {coef_str}"
+    
 
 class LogisticRegression:
-    def __init__(self, threshold=0.5, max_iter=1000, learning_rate=0.01, lambda_penalty=0.01):
+    def __init__(self, threshold=0.5, max_iter=1000, learning_rate=0.01):
         """
-        Logistic Regression without re balancing technique
         threshold: threshold value to classify as class 1 (default 0.5)
         max_iter: max number of iterations for gradient descent
         learning_rate: learning rate for gradient descent
-        lambda_penalty: L2 regularization lambda penalty
         """
         self.threshold = threshold
         self.max_iter = max_iter
         self.learning_rate = learning_rate
-        self.lambda_penalty = lambda_penalty
         self.coef_ = None
         self.intercept_ = None
     
@@ -114,10 +105,8 @@ class LogisticRegression:
             y_hat = self._sigmoid(z)
             # NLL gradient
             gradient = np.dot(X.T, (y_hat - y)) / y.size
-            regularization_term = (self.lambda_penalty / y.size) * self.coef_
-            regularization_term[0] = 0
             # Update coefficients
-            self.coef_ -= self.learning_rate * (gradient + regularization_term)
+            self.coef_ -= self.learning_rate * gradient
         
         self.intercept_ = self.coef_[0] # Intercept is the fist value of coef_
         self.coef_ = self.coef_[1:]
@@ -139,5 +128,3 @@ class LogisticRegression:
         """
         probas = self.predict_proba(X)
         return (probas >= self.threshold).astype(int)
-    
-
