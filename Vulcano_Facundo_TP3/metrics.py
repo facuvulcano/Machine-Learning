@@ -1,11 +1,15 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 class ClassificationMetrics:
     """
     A class to compute and store classification metrics for binary classifcation problems
     """
 
-    def __init__(self, real_target, predicted_target) -> None:
+    def __init__(self, real_target, predicted_target, predicted_probabilities) -> None:
         self.real_target = real_target
         self.predicted_target = predicted_target
+        self.predicted_probabilites = predicted_probabilities
         self.TP, self.TN, self.FP, self.FN = self.count_values()
 
     def count_values(self):
@@ -43,6 +47,7 @@ class ClassificationMetrics:
         """
         TP, TN, FP, FN = 0, 0, 0, 0
         for real, pred in zip(self.real_target, self.predicted_target):
+            #print(real)
             if real == 1:
                 if pred == 1:
                     TP += 1
@@ -126,7 +131,7 @@ class ClassificationMetrics:
         rec = self.recall()
         if prec + rec == 0:
             return 0
-        f1 = (2 * prec + rec) / (prec + rec)
+        f1 = (2 * prec * rec) / (prec + rec)
         return f1
 
     def confusion_matrix(self):
@@ -143,7 +148,7 @@ class ClassificationMetrics:
 
     def plot_pr_curve(self):
         """
-        Plots the precision-recall curve for the classification model
+        Plots the precision-recall curve for the sclassification model
 
         Returns:
         --------
@@ -158,7 +163,46 @@ class ClassificationMetrics:
         ------
         - Requires predicted probabilites to plot the curve
         """
-        pass
+
+        thresholds = np.sort(np.unique(self.predicted_probabilites))
+        thresholds = np.linspace(self.predicted_target.min(), self.predicted_probabilites.max(), num=100)
+        precision_values = []
+        recall_values = []
+        f1_scores = []
+        real_target = np.array(self.real_target)
+        
+        for threshold in thresholds:
+            predicted_target = (self.predicted_probabilites >= threshold).astype(int)[:, 1]
+            TP = np.sum((real_target == 1) & (predicted_target == 1))
+            FP = np.sum((real_target == 0) & (precision_values == 1))
+            FN = np.sum((real_target == 1) & (predicted_target == 0))
+            precision = TP / (TP + FP) if (TP +  FP) > 0 else 1.0
+            recall = TP / (TP + FN) if (TP + FN) > 0 else 0.0
+            if precision + recall > 0:
+                f1 = 2 * (precision * recall) / (precision + recall)
+            else:
+                f1 = 0.0
+            precision_values.append(precision)
+            recall_values.append(recall)
+            f1_scores.append(f1)
+        
+        precision_values = np.array(precision_values)
+        recall_values = np.array(recall_values)
+        f1_scores = np.array(f1_scores)
+
+        auc_pr_value = -np.trapz(precision_values, recall_values)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(recall_values, precision_values, label=f'Precision-Recall curve (AUC = {auc_pr_value: .2f})')
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision-Recall curve')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        return precision_values, recall_values, auc_pr_value
+
 
     def plot_roc_curve(self):
         """

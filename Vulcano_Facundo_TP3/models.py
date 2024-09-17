@@ -41,7 +41,7 @@ class DecisionTree():
         pass
 
     def find_best_split(self, data: np.array) -> tuple:
-        pass
+        passtest
 
     def find_label_probs(self, data: np.array) -> np.array:
         pass
@@ -139,7 +139,7 @@ class LogisticRegression:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        probas = self.predict_proba(X)
+        probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
     
 
@@ -240,7 +240,7 @@ class LogisticRegressionUndersampling:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        probas = self.predict_proba(X)
+        probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
     
 class LogisticRegressionOversampling:
