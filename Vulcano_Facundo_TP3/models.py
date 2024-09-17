@@ -342,7 +342,7 @@ class LogisticRegressionOversampling:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        probas = self.predict_proba(X)
+        probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
         
 
@@ -489,7 +489,7 @@ class LogisticRegressionSmote:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        probas = self.predict_proba(X)
+        probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
     
 class LogisticRegressionCostReWeighting:
