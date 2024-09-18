@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class ClassificationMetrics:
     """
@@ -76,6 +77,7 @@ class ClassificationMetrics:
 
         """
         total = self.TP +  self.TN + self.FP + self.FN
+        print(f'TP = {self.TP}, TN = {self.TN}, FP = {self.FP}, FN = {self.FN}')
         if total == 0:
             return 0
         return (self.TP + self.TN) / (total)
@@ -143,12 +145,17 @@ class ClassificationMetrics:
         matrix : list of lists
             a 2x2 confusion matrix [[TN, FP], [FN, TP]]
         """
-        return [[self.TN, self.FP],
+        matrix = [[self.TN, self.FP],
                 [self.FN, self.TP]]
+        
+        df_matrix = pd.DataFrame(data=matrix,
+                                 columns=['Predicted Negative', 'Predicted Positive'],
+                                 index=['Actual Negative', 'Actual Positive'])
+        return df_matrix
 
-    def plot_pr_curve(self):
+    def plot_pr_curve(self, recall_values_list, precision_values_list, auc_pr_values_list, model_names):
         """
-        Plots the precision-recall curve for the sclassification model
+        Plots the precision-recall curve for the classification model
 
         Returns:
         --------
@@ -164,36 +171,12 @@ class ClassificationMetrics:
         - Requires predicted probabilites to plot the curve
         """
 
-        thresholds = np.sort(np.unique(self.predicted_probabilites))
-        thresholds = np.linspace(self.predicted_target.min(), self.predicted_probabilites.max(), num=100)
-        precision_values = []
-        recall_values = []
-        f1_scores = []
-        real_target = np.array(self.real_target)
-        
-        for threshold in thresholds:
-            predicted_target = (self.predicted_probabilites >= threshold).astype(int)[:, 1]
-            TP = np.sum((real_target == 1) & (predicted_target == 1))
-            FP = np.sum((real_target == 0) & (precision_values == 1))
-            FN = np.sum((real_target == 1) & (predicted_target == 0))
-            precision = TP / (TP + FP) if (TP +  FP) > 0 else 1.0
-            recall = TP / (TP + FN) if (TP + FN) > 0 else 0.0
-            if precision + recall > 0:
-                f1 = 2 * (precision * recall) / (precision + recall)
-            else:
-                f1 = 0.0
-            precision_values.append(precision)
-            recall_values.append(recall)
-            f1_scores.append(f1)
-        
-        precision_values = np.array(precision_values)
-        recall_values = np.array(recall_values)
-        f1_scores = np.array(f1_scores)
-
-        auc_pr_value = -np.trapz(precision_values, recall_values)
-
         plt.figure(figsize=(8, 6))
-        plt.plot(recall_values, precision_values, label=f'Precision-Recall curve (AUC = {auc_pr_value: .2f})')
+        for recall_values, precision_values, auc_pr_value, model_name in zip(recall_values_list,
+                                                                              precision_values_list, 
+                                                                              auc_pr_values_list,
+                                                                              model_names):
+            plt.plot(recall_values, precision_values, label=f'{model_name} (AUC = {auc_pr_value: .2f})')
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.title('Precision-Recall curve')
@@ -201,10 +184,8 @@ class ClassificationMetrics:
         plt.grid(True)
         plt.show()
 
-        return precision_values, recall_values, auc_pr_value
 
-
-    def plot_roc_curve(self):
+    def plot_roc_curve(self, false_positive_rate_values_list, true_positive_rate_values_list, auc_roc_value_list, model_names):
         """
         Plots the receiver operating characteristics (ROC) curve for the classification model
 
@@ -221,9 +202,23 @@ class ClassificationMetrics:
         ------
         - Requires predicted probabilites to plot the curve.
         """
+        
+        plt.figure(figsize=(8, 6))
+        for false_positive_rate_values, true_positive_rate_values, auc_roc_value, model_name in zip(false_positive_rate_values_list,
+                                                                                                    true_positive_rate_values_list,
+                                                                                                    auc_roc_value_list,
+                                                                                                    model_names):
+            plt.plot(false_positive_rate_values, true_positive_rate_values, label=f'{model_name} (AUC = {auc_roc_value: .2f})')
 
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC curve')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+    
 
-    def auc_pr():
+    def auc_pr(self):
         """
         Calculates the area un the precision-recall curve (AUC-PR)
 
@@ -231,10 +226,33 @@ class ClassificationMetrics:
         --------
         auc_pr_value : float
             The AUC-PR score.
-        """
-        pass
 
-    def auc_roc():
+        """
+        thresholds = np.sort(np.unique(self.predicted_probabilites))
+
+        precision_values = []
+        recall_values = []
+        real_target = np.array(self.real_target)
+        
+        for threshold in thresholds:
+            predicted_target = (self.predicted_probabilites[:, 1] >= threshold).astype(int)
+            TP = np.sum((real_target == 1) & (predicted_target == 1))
+            FP = np.sum((real_target == 0) & (predicted_target == 1))
+            FN = np.sum((real_target == 1) & (predicted_target == 0))
+            precision = TP / (TP + FP) if (TP +  FP) > 0 else 1.0
+            recall = TP / (TP + FN) if (TP + FN) > 0 else 0.0
+
+            precision_values.append(precision)
+            recall_values.append(recall)
+        
+        precision_values = np.array(precision_values)
+        recall_values = np.array(recall_values)
+
+        auc_pr_value = -np.trapz(precision_values, recall_values)
+        
+        return recall_values, precision_values, auc_pr_value
+
+    def auc_roc(self):
         """
         Calculates the area under the receiver operating characteristics curve (AUC-ROC)
 
@@ -243,4 +261,29 @@ class ClassificationMetrics:
         auc_roc_value : float
             The AUC-ROC score
         """
-        pass
+        thresholds = np.sort(np.unique(self.predicted_probabilites))
+        
+        true_positive_rate_values = []
+        false_positive_rate_values = []
+        real_target = np.array(self.real_target)
+
+        for threshold in thresholds:
+            predicted_target = (self.predicted_probabilites[:, 1] >= threshold).astype(int)
+            TP = np.sum((real_target == 1) & (predicted_target == 1))
+            FN = np.sum((real_target == 1) & (predicted_target == 0))
+            FP = np.sum((real_target == 0) & (predicted_target == 1))
+            TN = np.sum((real_target == 0) & (predicted_target == 0))
+            true_positive_rate = TP / (TP + FN) if (TP + FN) > 0 else 0.0
+            false_positive_rate = FP / (FP + TN) if (FP + TN) > 0 else 0.0
+
+            true_positive_rate_values.append(true_positive_rate)
+            false_positive_rate_values.append(false_positive_rate)
+        
+        false_positive_rate_values = np.array(false_positive_rate_values)
+        true_positive_rate_values  = np.array(true_positive_rate_values)
+
+        auc_roc_value = -np.trapz(true_positive_rate_values, false_positive_rate_values)
+
+        return true_positive_rate_values, false_positive_rate_values, auc_roc_value
+
+    

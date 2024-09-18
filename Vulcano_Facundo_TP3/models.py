@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+from tqdm import tqdm
 
 class Node():
     def __init__(self, data, feature_idx, feature_val, prediction_probs, information_gain) -> None:
@@ -41,7 +42,7 @@ class DecisionTree():
         pass
 
     def find_best_split(self, data: np.array) -> tuple:
-        passtest
+        pass
 
     def find_label_probs(self, data: np.array) -> np.array:
         pass
@@ -460,7 +461,7 @@ class LogisticRegressionSmote:
         self.coef_ = np.zeros(X.shape[1])
         
         # Gradient descent
-        for _ in range(self.max_iter):
+        for _ in tqdm(range(self.max_iter), desc="Training Model", unit="iteration"):
             # Predict probability
             z = np.dot(X, self.coef_)
             y_hat = self._sigmoid(z)
@@ -489,6 +490,7 @@ class LogisticRegressionSmote:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
+        print(self.lambda_penalty)
         probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
     
@@ -543,11 +545,16 @@ class LogisticRegressionCostReWeighting:
         elif len(class1_idxs) < len(class0_idxs):
             minority_class = 1
             majority_class = 0
+        else:
+            minority_class = majority_class = None
 
-        pi_1 = len(class0_idxs if minority_class ==  0 else class1_idxs) / len(y)
-        pi_2 = len(class1_idxs if minority_class == 1 else class0_idxs) / len(y)
+        if minority_class is not None:
 
-        C = pi_2 / pi_1    
+            pi_1 = len(class0_idxs if minority_class ==  0 else class1_idxs) / len(y)
+            pi_2 = len(class1_idxs if minority_class == 1 else class0_idxs) / len(y)
+            C = pi_2 / pi_1    
+        else:
+            C = 1
 
         # Initialize the coefficients
         self.coef_ = np.zeros(X.shape[1])
@@ -558,7 +565,7 @@ class LogisticRegressionCostReWeighting:
             z = np.dot(X, self.coef_)
             y_hat = self._sigmoid(z)
             # NLL gradient
-            weights = np.where(y == minority_class, C, 1)
+            weights = np.where(y == minority_class, C, 1) if minority_class is not None else np.ones(y.shape)
             gradient = np.dot(X.T, weights * (y_hat - y)) / y.size
             regularization_term = (self.lambda_penalty / y.size) * self.coef_
             regularization_term[0] = 0
@@ -583,5 +590,5 @@ class LogisticRegressionCostReWeighting:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        probas = self.predict_proba(X)
+        probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
