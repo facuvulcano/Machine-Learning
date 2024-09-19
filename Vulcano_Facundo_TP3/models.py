@@ -67,7 +67,7 @@ class DecisionTree():
 
 
 class LogisticRegression:
-    def __init__(self, threshold=0.5, max_iter=1000, learning_rate=0.01, lambda_penalty=0.01):
+    def __init__(self, df, threshold=0.5, max_iter=1000, learning_rate=0.01, lambda_penalty=0.01):
         """
         Logistic Regression without re balancing technique
         threshold: threshold value to classify as class 1 (default 0.5)
@@ -461,7 +461,7 @@ class LogisticRegressionSmote:
         self.coef_ = np.zeros(X.shape[1])
         
         # Gradient descent
-        for _ in tqdm(range(self.max_iter), desc="Training Model", unit="iteration"):
+        for _ in range(self.max_iter):
             # Predict probability
             z = np.dot(X, self.coef_)
             y_hat = self._sigmoid(z)
@@ -490,7 +490,6 @@ class LogisticRegressionSmote:
         Predicts class (0 or 1) for the inputs X using a threshold.
         X: design matrix (n_samples, n_features)
         """
-        print(self.lambda_penalty)
         probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
     
