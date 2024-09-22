@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from models import LogisticRegression, LogisticRegressionUndersampling, LogisticRegressionOversampling, LogisticRegressionCostReWeighting, LogisticRegressionSmote
 from data_splitting import cross_val
-from metrics import ClassificationMetrics
+from binary_metrics import ClassificationMetrics
 from tqdm import tqdm
 from tabulate import tabulate
 

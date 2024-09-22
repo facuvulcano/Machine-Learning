@@ -48,7 +48,6 @@ class ClassificationMetrics:
         """
         TP, TN, FP, FN = 0, 0, 0, 0
         for real, pred in zip(self.real_target, self.predicted_target):
-            #print(real)
             if real == 1:
                 if pred == 1:
                     TP += 1
@@ -77,7 +76,6 @@ class ClassificationMetrics:
 
         """
         total = self.TP +  self.TN + self.FP + self.FN
-        print(f'TP = {self.TP}, TN = {self.TN}, FP = {self.FP}, FN = {self.FN}')
         if total == 0:
             return 0
         return (self.TP + self.TN) / (total)
