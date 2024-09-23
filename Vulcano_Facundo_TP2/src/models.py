@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
 
-
 class RidgeRegression():
     """
     Ridge Regression model for non lineal regression with L2 regularizations.
