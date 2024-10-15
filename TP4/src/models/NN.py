@@ -1,4 +1,5 @@
 import random
+import math
 
 class Value:
 
@@ -25,11 +26,22 @@ class Value:
         out = Value(self.data * other.data, (self, other), '*')
 
         def _backward():
-            self.grad +=other.data * out.grad
+            self.grad += other.data * out.grad
             other.grad += self.data * out.grad
         out._backward = _backward
 
         return out
+    
+    def __pow__(self, other):
+        assert isinstance(other, (int, float))
+        out = Value(self.data**other, (self,), f'**{other}')
+
+        def _backward():
+            self.grad += (other * self.data**(other-1)) * out.grad
+        out._backward = _backward
+
+        return out
+
     
     def relu(self):
         out = Value(0 if self.data < 0 else self.data, (self,), 'Relu')
@@ -92,7 +104,7 @@ class Module():
 class Neuron(Module):
 
     def __init__(self, nin, nonlin=True):
-        self.w = [Value(random.uniform(-1, 1)) for _ in range(nin)]
+        self.w = [Value(random.uniform(-math.sqrt(1/nin), math.sqrt(1/nin))) for _ in range(nin)]
         self.b = Value(0)
         self.nonlin = nonlin
 
@@ -104,7 +116,7 @@ class Neuron(Module):
         return self.w + [self.b]
     
     def __repr__(self) -> str:
-        return f'{'Relu' if self.nonlin else 'Linear'}Neuron({len(self.w)})'
+        return f'{"Relu" if self.nonlin else "Linear"}Neuron({len(self.w)})'
     
 class Layer(Module):  
 
@@ -119,7 +131,7 @@ class Layer(Module):
         return [p for n in self.neurons for p in n.parameters()]
     
     def __repr__(self) -> str:
-        return f'Layer of [{', '.join(str(n) for n in self.neurons)}]'
+        return f'Layer of [{", ".join(str(n) for n in self.neurons)}]'
 
 class MLP(Module):
 
@@ -136,33 +148,4 @@ class MLP(Module):
         return [p for layer in self.layers for p in layer.parameters()]
     
     def __repr__(self):
-        return f'MLP of [{', '.join(str(layer) for layer in self.layers)}]'
-    
-
-# Create input data (e.g., three features)
-x = [Value(0.5), Value(-1.5), Value(2.0)]
-
-# Create a neural network with 3 inputs, two hidden layers of 4 neurons, and an output layer of 1 neuron
-mlp = MLP(3, [4, 4, 1])
-
-# Perform a forward pass
-output = mlp(x)
-
-print(output)
-
-# Assume we have a target value
-target = Value(1.0)
-
-# Compute loss (mean squared error)
-loss = (output - target) * (output - target)
-
-# Perform backpropagation
-loss.backward()
-
-# Update parameters using gradient descent
-learning_rate = 0.01
-for param in mlp.parameters():
-    param.data -= learning_rate * param.grad
-
-# Reset gradients before the next iteration
-mlp.zero_grad()
+        return f'MLP of [{", ".join(str(layer) for layer in self.layers)}]'
