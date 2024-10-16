@@ -99,6 +99,6 @@ def processing(df):
     output_path = os.path.join('/home/facuvulcano/Machine-Learning/TP4/data/processed', file_name)
 
     df.to_csv(output_path, index=False)
-    print(f"Archivo guardado como: {output_path}")
+    #print(f"Archivo guardado como: {output_path}")
 
     return output_path

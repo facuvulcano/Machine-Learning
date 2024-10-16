@@ -13,21 +13,20 @@ def exponential_decay(initial_lr, decay_rate, epoch):
     return lr
 
 class LearningRateScheduler():
-    def __init__(self, initial_lr, scheduler_type, **kwargs):
+    def __init__(self, initial_lr, scheduler_type='linear', final_lr=1e-7, power=0.5, decay_rate=0.01):
         self.initial_lr = initial_lr
         self.scheduler_type = scheduler_type
-        self.params = kwargs
+        self.final_lr = final_lr
+        self.power = power
+        self.decay_rate = decay_rate
 
     def get_lr(self, epoch, total_epochs):
         if self.scheduler_type == 'linear':
-            final_lr = self.params.get('final_lr', 1e-6)
-            return linear_decay(self.initial_lr, final_lr, epoch, total_epochs)
+            return linear_decay(self.initial_lr, self.final_lr, epoch, total_epochs)
         elif self.scheduler_type == 'power':
-            power = self.params.get('power', 1.0)
-            return power_law_decay(self.initial_lr, power, epoch, total_epochs)
+            return power_law_decay(self.initial_lr, self.power, epoch, total_epochs)
         elif self.scheduler_type == 'exponential':
-            decay_rate = self.params.get('decay_rate', 0.01)
-            return exponential_decay(self.initial_lr, decay_rate, epoch)
+            return exponential_decay(self.initial_lr, self.decay_rate, epoch)
         else:
             raise ValueError(f"Scheduler type '{self.scheduler_type}' no reconocido.")
         
