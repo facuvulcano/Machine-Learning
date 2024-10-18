@@ -14,17 +14,15 @@ def main():
     print("Iniciando el script")
 
     # Parsear los argumentos de linea de comandos
-    print("Parseando argumentos..")
     args = parse_arguments()
 
     
     # Crear directorios necesaruis si no existen
-    print("Creando directorios..")
+
     log_dir = os.path.dirname(args.log_file)
     metrics_dir = os.path.dirname(args.metrics_file)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(metrics_dir, exist_ok=True)
-    print("Directorios creados.")
 
     # Cargar y preparar los datos
     X_train, X_val, y_train, y_val, X_test, y_test, y_min, y_max = load_and_prepare_data()

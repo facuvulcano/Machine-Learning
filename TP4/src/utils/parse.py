@@ -11,7 +11,7 @@ def parse_arguments():
                         help='Learning rate final para linear decay')
     parser.add_argument('--power', type=float, default=0.5,
                         help='Power para power law decay')
-    parser.add_argument('--decay_rate', type=float, default=0.01,
+    parser.add_argument('--decay_rate', type=float, default=0.95,
                         help='Decay rate para exponential decay')
     
     # Regularizacion L2
@@ -29,4 +29,19 @@ def parse_arguments():
                         help='Numero de epocas de entrenamiento')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='Tamanio del batch para entrenamiento')
+    
+    # Parametros del Optimizador
+    parser.add_argument('--optimizer', type=str, default='sgd',
+                        choices=['sgd', 'sgd_momentum', 'adam', 'mini_batch_sgd'],
+                        help='Tipo de otpimizador a utilizar')
+    parser.add_argument('--learning_rate', type=float, default=1e-5,
+                        help='Learning rate para el optimizador')
+    parser.add_argument('--momentum', type=float, default=0.9,
+                        help='Momentum para SGD con momentum')
+    parser.add_argument('--beta1', type=float, default=0.9,
+                        help='Beta1 para Adam')
+    parser.add_argument('--beta2', type=float, default=0.999,
+                        help='Beta2 para Adam')   
+    parser.add_argument('--epsilon', type=float, default=1e-8,
+                        help='Epsilon para Adam') 
     return parser.parse_args()

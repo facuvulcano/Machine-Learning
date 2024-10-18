@@ -15,6 +15,11 @@ from metrics.r2 import r2
 from utils.logger import setup_logger
 from schedulers.learning_rate_schedulers import LearningRateScheduler
 from loss.mse_loss import total_loss
+from models.optimizers.sgd import SGD
+from models.optimizers.sgd_momentum import SGDMomentum
+from models.optimizers.adam import Adam
+from models.optimizers.mini_batch_sgd import MiniBatchSGD
+
 
 
 print("modulos importados")
@@ -26,19 +31,30 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
 
     # Definicion del scheduler
     scheduler = LearningRateScheduler(
-        initial_lr=1e-8,
+        initial_lr=1e-7,
         scheduler_type=args.scheduler_type,
         final_lr=args.final_lr,
         power=args.power,
         decay_rate=args.decay_rate
     )
-    
+
     # Inicializacion del modelo
     input_size = X_train.shape[1]
     model = MLP(input_size, [10, 8, 4, 1])
     num_params = len(model.parameters())
     print(f'Cantidad de parametros: {num_params}')
     logger.info(f'Cantidad de parametros: {num_params}')
+
+    if args.optimizer == 'sgd':
+        optimizer = SGD(learning_rate=args.learning_rate)
+    elif  args.optimizer == 'sgd_momentum':
+        optimizer = SGDMomentum(learning_rate=args.learning_rate, momentum=args.momentum)
+    elif args.optimizer == 'adam':
+        optimizer = Adam(learning_rate=args.learning_rate, beta1=args.beta1, beta2=args.beta2)
+    elif args.optimizer == 'mini_batch_sgd':
+        optimizer = MiniBatchSGD(learning_rate=args.learning_rate, batch_size=args.batch_size)
+    else:
+        raise ValueError(f"Optimizador {args.optimizer} no reconocido")
 
     # Inicializacion de listas para almacenar perdidas y metricas
     train_losses = []
@@ -60,13 +76,18 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         learning_rates.append(current_lr)
 
         epoch_loss = 0.0
+
+        if hasattr(optimizer, 'lr'):
+            optimizer.lr = current_lr
+        elif isinstance(optimizer, Adam):
+            optimizer.lr = current_lr
         
         # Entrenamiento
         for i in range(len(X_train)):
             x = X_train.iloc[i].values
             y_true = y_train[i]
             y_pred = model(x)
-            print(f'Prediccion: {y_pred}, Verdadero: {y_true}')
+            #print(f'Prediccion: {y_pred}, Verdadero: {y_true}')
 
             # Calcular la perdida total
             loss = total_loss(y_true, y_pred, model, args.lambda_reg)
@@ -75,9 +96,11 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
             # Backpropagation
             loss.backward()
 
-            # Actualizar parametros
-            for p in model.parameters():
-                p.data += -current_lr * p.grad
+            # Obtener parametros y gradientes
+            params = model.parameters()
+            grads = [p.grad for p in params]
+
+            optimizer.update(params, grads)
             
             # Reinicializar gradientes
             model.zero_grad()
@@ -99,9 +122,7 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         val_losses.append(val_loss)
 
 
-
         # Calculo de metricas en cada epoca
-
         y_val_pred_norm_array = np.array(y_val_pred_norm).flatten()
         y_val_pred = y_val_pred_norm_array * (y_max - y_min) + y_min
         y_val_original = y_val * (y_max - y_min) + y_min
@@ -136,7 +157,10 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         'Epoch' : range(1, len(train_losses) + 1),
         'Train Loss' : train_losses,
         'Val Loss' : val_losses,
-        'Learning Rate' : learning_rates
+        'Learning Rate' : learning_rates,
+        'RMSE' : rmse_vals,
+        'MAE' : mae_vals,
+        'R2' : r2_vals
     })
 
     metrics.to_csv(args.metrics_file, index=False)

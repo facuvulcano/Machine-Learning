@@ -13,7 +13,7 @@ def exponential_decay(initial_lr, decay_rate, epoch):
     return lr
 
 class LearningRateScheduler():
-    def __init__(self, initial_lr, scheduler_type='linear', final_lr=1e-7, power=0.5, decay_rate=0.01):
+    def __init__(self, initial_lr, scheduler_type='linear', final_lr=1e-7, power=1, decay_rate=0.95):
         self.initial_lr = initial_lr
         self.scheduler_type = scheduler_type
         self.final_lr = final_lr
