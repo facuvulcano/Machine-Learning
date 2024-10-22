@@ -1,5 +1,3 @@
-print("El script train.py ha comenzado a ejecutarse")
-
 import sys
 import copy
 import numpy as np
@@ -20,18 +18,13 @@ from models.optimizers.sgd_momentum import SGDMomentum
 from models.optimizers.adam import Adam
 from models.optimizers.mini_batch_sgd import MiniBatchSGD
 
-
-
-print("modulos importados")
-
 def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
-    print("entrando a funcion")
 
     logger = setup_logger('train_logger', args.log_file)
 
     # Definicion del scheduler
     scheduler = LearningRateScheduler(
-        initial_lr=1e-7,
+        initial_lr=args.initial_learning_rate,
         scheduler_type=args.scheduler_type,
         final_lr=args.final_lr,
         power=args.power,
@@ -40,21 +33,34 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
 
     # Inicializacion del modelo
     input_size = X_train.shape[1]
-    model = MLP(input_size, [10, 8, 4, 1])
+    layers = [args.M_list[i] for i in range (args.L)]
+    print(f'\nCantidad de capas ocultas: {len(layers)}')
+    for layer in range(len(layers)):
+        print(f'Capa oculta: {layer + 1} tiene {layers[layer]} neuronas ')
+    layers.append(1)
+    model = MLP(input_size, layers)
     num_params = len(model.parameters())
     print(f'Cantidad de parametros: {num_params}')
     logger.info(f'Cantidad de parametros: {num_params}')
 
     if args.optimizer == 'sgd':
-        optimizer = SGD(learning_rate=args.learning_rate)
+        optimizer = SGD(learning_rate=args.initial_learning_rate)
     elif  args.optimizer == 'sgd_momentum':
-        optimizer = SGDMomentum(learning_rate=args.learning_rate, momentum=args.momentum)
+        optimizer = SGDMomentum(learning_rate=args.initial_learning_rate, momentum=args.momentum)
     elif args.optimizer == 'adam':
-        optimizer = Adam(learning_rate=args.learning_rate, beta1=args.beta1, beta2=args.beta2)
+        optimizer = Adam(learning_rate=args.initial_learning_rate, beta1=args.beta1, beta2=args.beta2)
     elif args.optimizer == 'mini_batch_sgd':
-        optimizer = MiniBatchSGD(learning_rate=args.learning_rate, batch_size=args.batch_size)
+        optimizer = MiniBatchSGD(learning_rate=args.initial_learning_rate, batch_size=args.batch_size)
     else:
         raise ValueError(f"Optimizador {args.optimizer} no reconocido")
+
+    # Determinar el tamanio del batch
+    if args.batch_size is None:
+        batch_size = len(X_train)
+        print(f'Tamanio del batch no especificado. Usando entrenamiento batch completo: {batch_size}')
+    else:
+        batch_size = args.batch_size
+        print(f'Tamanio del batch especificado: {batch_size}')
 
     # Inicializacion de listas para almacenar perdidas y metricas
     train_losses = []
@@ -70,8 +76,9 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
     patience_counter = 0
     best_model = None
 
+    num_batches = int(np.ceil(len(X_train) / batch_size))
+
     for epoch in range(1, args.num_epochs + 1):
-        print(f'Comenzando la epoca {epoch}')
         current_lr = scheduler.get_lr(epoch, args.num_epochs)
         learning_rates.append(current_lr)
 
@@ -82,28 +89,38 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         elif isinstance(optimizer, Adam):
             optimizer.lr = current_lr
         
-        # Entrenamiento
-        for i in range(len(X_train)):
-            x = X_train.iloc[i].values
-            y_true = y_train[i]
-            y_pred = model(x)
-            #print(f'Prediccion: {y_pred}, Verdadero: {y_true}')
+        # Entrenamiento por batches
+        for batch in range(num_batches):
+            start = batch * batch_size
+            end = start + batch_size
+            X_batch = X_train.iloc[start:end]
+            y_batch = y_train[start:end]
 
-            # Calcular la perdida total
-            loss = total_loss(y_true, y_pred, model, args.lambda_reg)
-            epoch_loss += loss.data
+            batch_loss = 0.0
 
-            # Backpropagation
-            loss.backward()
+            for i in range(len(X_batch)):
+                x = X_batch.iloc[i].values
+                y_true = y_batch[i]
+                y_pred = model(x)
+                #print(f'Prediccion: {y_pred}, Verdadero: {y_true}')
 
-            # Obtener parametros y gradientes
-            params = model.parameters()
-            grads = [p.grad for p in params]
+                # Calcular la perdida total
+                loss = total_loss(y_true, y_pred, model, args.lambda_reg)
+                batch_loss += loss.data
 
-            optimizer.update(params, grads)
-            
-            # Reinicializar gradientes
-            model.zero_grad()
+                # Backpropagation
+                loss.backward()
+
+                # Obtener parametros y gradientes
+                params = model.parameters()
+                grads = [p.grad for p in params]
+
+                optimizer.update(params, grads)
+                
+                # Reinicializar gradientes
+                model.zero_grad()
+
+            epoch_loss += batch_loss
 
         # Calcular perdida promedio de entrenamiento
         train_loss = epoch_loss / len(X_train)
@@ -135,8 +152,8 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         mae_vals.append(mae_val)
         r2_vals.append(r2_val)
 
-        print(f'Epoca {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, '
-                f'RMSE={rmse_val:.4f}, MAE={mae_val:.4f}, R2={r2_val:.4f}')
+        # print(f'Epoca {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, '
+        #         f'RMSE={rmse_val:.4f}, MAE={mae_val:.4f}, R2={r2_val:.4f}')
         logger.info(f'Epoca {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, '
                     f'RMSE={rmse_val:.4f}, MAE={mae_val:.4f}, R2={r2_val:.4f}')
             
@@ -149,9 +166,16 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
             patience_counter += 1
 
         if patience_counter >= patience:
-            print(f'Early stopping en la epoca {epoch}')
+            print(f'\nEarly stopping en la epoca {epoch}')
+            print(f'Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}, '
+                f'RMSE={rmse_val:.4f}, MAE={mae_val:.4f}, R2={r2_val:.4f}')
             logger.info(f'Early stopping en la epoca {epoch}')
-            break
+            break 
+        
+    print(f'\nEntrenamiento durante {epoch} epocas.')
+    print(f'Resultados finales:')
+    print(f'Train Loss={train_losses[-1]:.4f}, Val Loss={val_losses[-1]:.4f}, '
+                f'RMSE={rmse_vals[-1]:.4f}, MAE={mae_vals[-1]:.4f}, R2={r2_vals[-1]:.4f}')
 
     metrics = pd.DataFrame({
         'Epoch' : range(1, len(train_losses) + 1),

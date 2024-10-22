@@ -7,6 +7,8 @@ def parse_arguments():
     parser.add_argument('--scheduler_type', type=str, default='linear',
                         choices=['linear', 'power', 'exponential'],
                         help='Tipo de learning rate scheduler (linear, power, exponential)')
+    parser.add_argument('--initial_learning_rate', type=float, default=0.01,
+                        help='Initial learning para entrenar la red')
     parser.add_argument('--final_lr', type=float, default=1e-7,
                         help='Learning rate final para linear decay')
     parser.add_argument('--power', type=float, default=0.5,
@@ -27,8 +29,8 @@ def parse_arguments():
     # Otros parametros
     parser.add_argument('--num_epochs', type=int, default=10,
                         help='Numero de epocas de entrenamiento')
-    parser.add_argument('--batch_size', type=int, default=32,
-                        help='Tamanio del batch para entrenamiento')
+    parser.add_argument('--batch_size', type=int, default=None,
+                        help='Tamanio del batch para MiniBatchSGD (default: tamanio completo del conjunto de entrenamiento)')
     
     # Parametros del Optimizador
     parser.add_argument('--optimizer', type=str, default='sgd',
@@ -44,4 +46,13 @@ def parse_arguments():
                         help='Beta2 para Adam')   
     parser.add_argument('--epsilon', type=float, default=1e-8,
                         help='Epsilon para Adam') 
+    
+    # Hiperparametros de la arquitectura
+    parser.add_argument('--L', type=int, default=3, help='Numero de capas en la red neuronal')
+    parser.add_argument('--M_list', type=str, default='10,8,4', help='Lista de neuronas por cada capa oculta, sepradas por comas')
+    
+    # Argumentos para conjuntos de datos especificos
+    parser.add_argument('--train_data', type=str, default='', help='Ruta al archivo de datos de entrenamiento (sin extension)')
+    parser.add_argument('--val_data', type=str, default='', help='Ruta al archivo de datos de validacion (sin extension)')
+
     return parser.parse_args()
