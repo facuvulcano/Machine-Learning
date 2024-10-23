@@ -1,6 +1,6 @@
 import argparse
 
-def parse_arguments():
+def parse_arguments(args=None):
     """
     Analiza los argumentos de linea de comandos para el entrenamiento de una red neuronal multicapa densa (MLP).
 
@@ -64,4 +64,4 @@ def parse_arguments():
     parser.add_argument('--train_data', type=str, default='', help='Ruta al archivo de datos de entrenamiento (sin extension)')
     parser.add_argument('--val_data', type=str, default='', help='Ruta al archivo de datos de validacion (sin extension)')
 
-    return parser.parse_args()
+    return parser.parse_args(args)

@@ -39,7 +39,8 @@ def main():
     # Entrenar el modelo
     metrics, best_model = train_model(args, X_train, X_val, y_train, y_val, y_min, y_max)
 
-    metrics.to_csv(args.metrics_file, mode='a', header=False, index=False)
+    final_metrics = metrics.tail(1)
+    final_metrics.to_csv(args.metrics_file, mode='a', header=False, index=False)
 
     # Imprimir resumen
     print("\nEntrenamiento completado.")
