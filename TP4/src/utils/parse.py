@@ -15,7 +15,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Entrenamiento de una red neuronal multicapa densa (MLP)')
 
     # Parametros de Scheduler
-    parser.add_argument('--scheduler_type', type=str, default='linear',
+    parser.add_argument('--scheduler_type', type=str, default=None,
                         choices=['linear', 'power', 'exponential'],
                         help='Tipo de learning rate scheduler (linear, power, exponential)')
     parser.add_argument('--initial_learning_rate', type=float, default=0.01,
@@ -47,8 +47,6 @@ def parse_arguments():
     parser.add_argument('--optimizer', type=str, default='sgd',
                         choices=['sgd', 'sgd_momentum', 'adam', 'mini_batch_sgd'],
                         help='Tipo de otpimizador a utilizar')
-    parser.add_argument('--learning_rate', type=float, default=1e-5,
-                        help='Learning rate para el optimizador')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum para SGD con momentum')
     parser.add_argument('--beta1', type=float, default=0.9,
