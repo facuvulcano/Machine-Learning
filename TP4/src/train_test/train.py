@@ -82,19 +82,18 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
         current_lr = scheduler.get_lr(epoch, args.num_epochs)
         learning_rates.append(current_lr)
 
+        optimizer.lr = current_lr
+
         epoch_loss = 0.0
 
-        if hasattr(optimizer, 'lr'):
-            optimizer.lr = current_lr
-        elif isinstance(optimizer, Adam):
-            optimizer.lr = current_lr
-        
         # Entrenamiento por batches
         for batch in range(num_batches):
             start = batch * batch_size
             end = start + batch_size
             X_batch = X_train.iloc[start:end]
             y_batch = y_train[start:end]
+
+            model.zero_grad()
 
             batch_loss = 0.0
 
@@ -111,14 +110,14 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
                 # Backpropagation
                 loss.backward()
 
-                # Obtener parametros y gradientes
-                params = model.parameters()
-                grads = [p.grad for p in params]
+            # Obtener parametros y gradientes
+            for param in model.parameters():
+                param.grad /= len(X_batch)
 
-                optimizer.update(params, grads)
-                
-                # Reinicializar gradientes
-                model.zero_grad()
+            params = model.parameters()
+            grads = [p.grad for p in params]
+
+            optimizer.update(params, grads)
 
             epoch_loss += batch_loss
 
@@ -191,55 +190,3 @@ def train_model(args, X_train, X_val, y_train, y_val, y_min, y_max):
 
     return metrics, best_model
                 
-
-
-# plt.figure(figsize=(10, 5))
-# plt.plot(range(num_ephocs), train_losses, label='Entrenamiento')
-# plt.plot(range(num_ephocs), val_losses, label='Validacion')
-# plt.xlabel('Epocas')
-# plt.ylabel('Perdida (MSE)')
-# plt.title('Curvas de perdida')
-# plt.legend()
-# plt.savefig('results/loss_curves.png')
-# plt.show()
-
-# plt.figure(figsize=(12, 8))
-# for lambda_reg in lambda_values:
-#     plt.plot(results[lambda_reg]['train_losses'], label=f'Train Loss lambda={lambda_reg}')
-#     plt.plot(results[lambda_reg]['val_losses'], linestyile='--', label=f'Val Loss lambda={lambda_reg}')
-# plt.xlabel('Epocas')
-# plt.ylabel('Perdida (MSE)')
-# plt.title('Curvas de perdida de entrenamiento y validacion para diferentes lambda')
-# plt.legend()
-# plt.grid(True)
-# plt.show()
-
-# plt.figure(figsize=(12, 8))
-# r2_scores = [results[lambda_reg]['r2'] for lambda_reg in lambda_values]
-# plt.plot(lambda_values, r2_scores, marker='o')
-# plt.xscale('log')
-# plt.xlabel('lambda (L2 Regularization)')
-# plt.ylabel('R2')
-# plt.title('R2 en validacion para diferentes lambda')
-# plt.grid(True)
-# plt.show()
-
-# plt.figure(figsize=(12, 8))
-# rmse_scores = [results[lambda_reg]['rmse'] for lambda_reg in lambda_values]
-# plt.plot(lambda_values, rmse_scores, marker='o', color='green')
-# plt.xscale('log')
-# plt.xlabel('lambda (L2 Regularization)')
-# plt.ylabel('RMSE')
-# plt.title('RMSE en validacion para diferentes lambda')
-# plt.grid(True)
-# plt.show()
-
-# plt.figure(figsize=(12, 8))
-# mae_scores = [results[lambda_reg]['mae'] for lambda_reg in lambda_values]
-# plt.plot(lambda_values, mae_scores, marker='o', color='red')
-# plt.xscale('log')
-# plt.xlabel('lambda (L2 Regularization)')
-# plt.ylabel('MAE')
-# plt.title('MAE en validacion para diferentes lambda')
-# plt.grid(True)
-# plt.show()

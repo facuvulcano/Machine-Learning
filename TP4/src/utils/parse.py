@@ -1,6 +1,17 @@
 import argparse
 
 def parse_arguments():
+    """
+    Analiza los argumentos de linea de comandos para el entrenamiento de una red neuronal multicapa densa (MLP).
+
+    Esta funcion configura y parsea los argumentos necesarios para configurar el entrenamiento del MLP,
+    incluyendo parametros de scheduler, regularizacion, rutas de archivos, optimizador, arquitectura de la red,
+    y rutas a conjuntos de datos especificos.
+
+    Retorna:
+        argpase.Namespace: un objeto que contiene los valores de los argumentos parsados.
+    """
+
     parser = argparse.ArgumentParser(description='Entrenamiento de una red neuronal multicapa densa (MLP)')
 
     # Parametros de Scheduler
